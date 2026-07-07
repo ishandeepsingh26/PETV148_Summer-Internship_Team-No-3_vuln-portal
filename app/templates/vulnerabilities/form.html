@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}New Finding — VulnPortal{% endblock %}
+{% block content %}
+<h4 class="mb-3"><i class="fa-solid fa-bug me-2"></i>New Vulnerability Finding</h4>
+
+<form method="post">
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">Finding Details</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="4"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Asset</label>
+              <select name="asset_id" class="form-select">
+                <option value="">— none —</option>
+                {% for a in assets %}
+                <option value="{{ a['id'] }}">{{ a['name'] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Assign To</label>
+              <select name="assigned_to" class="form-select">
+                <option value="">— unassigned —</option>
+                {% for u in users %}
+                <option value="{{ u['id'] }}">{{ u['username'] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Due Date</label>
+            <input type="date" name="due_date" class="form-control">
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">CVSS v3.1 Base Metrics</div>
+        <div class="card-body">
+          {% set cvss_fields = [
+            ('cvss_av', 'Attack Vector', [('N','Network'),('A','Adjacent'),('L','Local'),('P','Physical')]),
+            ('cvss_ac', 'Attack Complexity', [('L','Low'),('H','High')]),
+            ('cvss_pr', 'Privileges Required', [('N','None'),('L','Low'),('H','High')]),
+            ('cvss_ui', 'User Interaction', [('N','None'),('R','Required')]),
+            ('cvss_s', 'Scope', [('U','Unchanged'),('C','Changed')]),
+            ('cvss_c', 'Confidentiality Impact', [('N','None'),('L','Low'),('H','High')]),
+            ('cvss_i', 'Integrity Impact', [('N','None'),('L','Low'),('H','High')]),
+            ('cvss_a', 'Availability Impact', [('N','None'),('L','Low'),('H','High')]),
+          ] %}
+          {% for name, label, options in cvss_fields %}
+          <div class="mb-3 row">
+            <label class="col-sm-5 col-form-label">{{ label }}</label>
+            <div class="col-sm-7">
+              <select name="{{ name }}" class="form-select cvss-input" data-metric="{{ name }}">
+                {% for val, opt_label in options %}
+                <option value="{{ val }}">{{ opt_label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="alert alert-secondary mb-0">
+            <strong>Live score:</strong> <span id="cvss-score">0.0</span>
+            (<span id="cvss-severity">None</span>)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">OWASP Risk Rating — Likelihood Factors (0–9)</div>
+        <div class="card-body">
+          {% for f in likelihood_factors %}
+          <div class="mb-2 row align-items-center">
+            <label class="col-sm-7 col-form-label small">{{ f.replace('_',' ').title() }}</label>
+            <div class="col-sm-5">
+              <input type="range" min="0" max="9" step="1" value="0" class="form-range owasp-input"
+                     name="owasp_{{ f }}" oninput="this.nextElementSibling.textContent=this.value">
+              <span class="small text-muted">0</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">OWASP Risk Rating — Impact Factors (0–9)</div>
+        <div class="card-body">
+          {% for f in impact_factors %}
+          <div class="mb-2 row align-items-center">
+            <label class="col-sm-7 col-form-label small">{{ f.replace('_',' ').title() }}</label>
+            <div class="col-sm-5">
+              <input type="range" min="0" max="9" step="1" value="0" class="form-range owasp-input"
+                     name="owasp_{{ f }}" oninput="this.nextElementSibling.textContent=this.value">
+              <span class="small text-muted">0</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 mb-5">
+    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Save Finding</button>
+    <a href="{{ url_for('vulnerabilities.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Mirrors app/cvss.py logic client-side for instant feedback (server is source of truth).
+const AV = {N:0.85, A:0.62, L:0.55, P:0.2};
+const AC = {L:0.77, H:0.44};
+const UI = {N:0.85, R:0.62};
+const CIA = {N:0.0, L:0.22, H:0.56};
+const PR = {U:{N:0.85,L:0.62,H:0.27}, C:{N:0.85,L:0.68,H:0.5}};
+
+function roundup(v) {
+  const i = Math.round(v * 100000);
+  if (i % 10000 === 0) return i / 100000;
+  return (Math.floor(i / 10000) + 1) / 10;
+}
+
+function severityLabel(score) {
+  if (score === 0) return 'None';
+  if (score < 4) return 'Low';
+  if (score < 7) return 'Medium';
+  if (score < 9) return 'High';
+  return 'Critical';
+}
+
+function recalc() {
+  const get = (n) => document.querySelector(`[data-metric="${n}"]`).value;
+  const av = get('cvss_av'), ac = get('cvss_ac'), pr = get('cvss_pr'),
+        ui = get('cvss_ui'), s = get('cvss_s'), c = get('cvss_c'),
+        i = get('cvss_i'), a = get('cvss_a');
+
+  const iss = 1 - ((1 - CIA[c]) * (1 - CIA[i]) * (1 - CIA[a]));
+  let impact = s === 'U' ? 6.42 * iss : 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+  const exploitability = 8.22 * AV[av] * AC[ac] * PR[s][pr] * UI[ui];
+
+  let score = 0;
+  if (impact > 0) {
+    score = s === 'U' ? roundup(Math.min(impact + exploitability, 10))
+                       : roundup(Math.min(1.08 * (impact + exploitability), 10));
+  }
+  document.getElementById('cvss-score').textContent = score.toFixed(1);
+  document.getElementById('cvss-severity').textContent = severityLabel(score);
+}
+
+document.querySelectorAll('.cvss-input').forEach(el => el.addEventListener('change', recalc));
+recalc();
+</script>
+{% endblock %}

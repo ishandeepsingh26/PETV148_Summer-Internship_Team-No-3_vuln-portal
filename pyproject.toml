@@ -1,0 +1,15 @@
+[project]
+name = "vuln-portal"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "Flask==3.0.3",
+    "bcrypt==4.2.0",
+    "zxcvbn==4.4.28",
+    "Werkzeug==3.0.4",
+    "reportlab==4.2.5",
+    "psycopg2-binary==2.9.9",
+]
+
+[tool.vercel]
+entrypoint = "run:app"

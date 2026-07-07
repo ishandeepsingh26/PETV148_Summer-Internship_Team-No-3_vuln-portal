@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Assets — VulnPortal{% endblock %}
+{% block content %}
+<div class="row g-4">
+  {% if g.user['role'] in ('admin', 'analyst') %}
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header">Add Asset</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Type</label>
+            <input type="text" name="asset_type" class="form-control" placeholder="Web app, server, network device...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Owner</label>
+            <input type="text" name="owner" class="form-control">
+          </div>
+          <button class="btn btn-primary w-100">Add Asset</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-lg-{{ 8 if g.user['role'] in ('admin','analyst') else 12 }}">
+    <table class="table bg-white shadow-sm">
+      <thead class="table-dark"><tr><th>Name</th><th>Type</th><th>Owner</th><th>Findings</th>{% if g.user['role'] == 'admin' %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+        {% for a in assets %}
+        <tr>
+          <td>{{ a['name'] }}</td><td>{{ a['asset_type'] or '—' }}</td><td>{{ a['owner'] or '—' }}</td><td>{{ a['vuln_count'] }}</td>
+          {% if g.user['role'] == 'admin' %}
+          <td>
+            <form method="post" action="{{ url_for('vulnerabilities.delete_asset', asset_id=a['id']) }}" onsubmit="return confirm('Delete this asset?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No assets yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

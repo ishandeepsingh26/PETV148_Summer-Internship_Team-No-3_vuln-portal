@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ vuln['title'] }} — VulnPortal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="term-prompt mb-1">{{ vuln['title'] }}</h5>
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="badge bg-{{ severity_color(vuln['cvss_severity']) }}">{{ vuln['cvss_severity'] or 'None' }}</span>
+      <span class="badge bg-secondary">{{ vuln['status'].replace('_',' ').upper() }}</span>
+      <span class="badge bg-info">OWASP: {{ vuln['owasp_risk_level'] or '—' }}</span>
+    </div>
+  </div>
+  {% if g.user['role'] == 'admin' %}
+  <form method="post" action="{{ url_for('vulnerabilities.delete', vuln_id=vuln['id']) }}"
+        onsubmit="return confirm('Permanently delete this finding?');">
+    <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash me-1"></i>DELETE</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card mb-4">
+      <div class="card-header"><i class="fa-solid fa-file-lines me-2"></i>FINDING DETAILS</div>
+      <div class="card-body p-4">
+        <p style="color:var(--cyber-text)">{{ vuln['description'] or 'No description provided.' }}</p>
+        <div style="border-top:1px solid var(--cyber-border);padding-top:1rem;margin-top:1rem;">
+          <dl class="row mb-0" style="font-size:0.82rem;">
+            <dt class="col-sm-4" style="color:var(--cyber-muted)">Asset</dt>
+            <dd class="col-sm-8">{{ vuln['asset_name'] or '—' }}</dd>
+            <dt class="col-sm-4" style="color:var(--cyber-muted)">Assignee</dt>
+            <dd class="col-sm-8">{{ vuln['assignee'] or 'Unassigned' }}</dd>
+            <dt class="col-sm-4" style="color:var(--cyber-muted)">Reporter</dt>
+            <dd class="col-sm-8">{{ vuln['reporter'] or '—' }}</dd>
+            <dt class="col-sm-4" style="color:var(--cyber-muted)">Due date</dt>
+            <dd class="col-sm-8">{{ vuln['due_date'] or '—' }}</dd>
+            <dt class="col-sm-4" style="color:var(--cyber-muted)">Created</dt>
+            <dd class="col-sm-8">{{ vuln['created_at']|fmtdate('%Y-%m-%d %H:%M') }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-chart-bar me-2"></i>CVSS v3.1 SCORING</div>
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="font-family:var(--font-title);font-size:2.5rem;color:var(--cyber-blue);text-shadow:0 0 15px rgba(0,212,255,0.5)">
+            {{ '%.1f'|format(vuln['cvss_score']) if vuln['cvss_score'] is not none else '—' }}
+          </div>
+          <div>
+            <span class="badge bg-{{ severity_color(vuln['cvss_severity']) }}" style="font-size:0.85rem">{{ vuln['cvss_severity'] }}</span>
+            <div style="font-size:0.7rem;color:var(--cyber-muted);margin-top:0.3rem">BASE SCORE</div>
+          </div>
+        </div>
+        <code style="font-size:0.78rem;display:block;word-break:break-all;">{{ vuln['cvss_vector'] }}</code>
+        <div class="row mt-3" style="font-size:0.75rem;">
+          <div class="col-6"><span style="color:var(--cyber-muted)">OWASP Likelihood:</span> {{ vuln['owasp_likelihood'] or '—' }}</div>
+          <div class="col-6"><span style="color:var(--cyber-muted)">OWASP Impact:</span> {{ vuln['owasp_impact'] or '—' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-4">
+      <div class="card-header"><i class="fa-solid fa-arrows-rotate me-2"></i>STATUS UPDATE</div>
+      <div class="card-body p-4">
+        {% if g.user['role'] in ('admin', 'analyst') %}
+        <form method="post" action="{{ url_for('vulnerabilities.update_status', vuln_id=vuln['id']) }}">
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              {% for s in ['open','in_progress','remediated','accepted_risk','false_positive'] %}
+              <option value="{{ s }}" {% if vuln['status']==s %}selected{% endif %}>{{ s.replace('_',' ').upper() }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Remediation Notes</label>
+            <textarea name="remediation_notes" class="form-control" rows="4" placeholder="// describe remediation steps...">{{ vuln['remediation_notes'] or '' }}</textarea>
+          </div>
+          <button class="btn btn-primary w-100"><i class="fa-solid fa-floppy-disk me-2"></i>UPDATE STATUS</button>
+        </form>
+        {% else %}
+        <p class="mb-1"><strong style="color:var(--cyber-muted)">STATUS:</strong> {{ vuln['status'].replace('_',' ').upper() }}</p>
+        <p class="mb-0"><strong style="color:var(--cyber-muted)">NOTES:</strong> {{ vuln['remediation_notes'] or 'None' }}</p>
+        <p style="color:var(--cyber-muted);font-size:0.75rem;margin-top:1rem;">
+          <i class="fa-solid fa-lock me-1"></i>View-only access.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-clock-rotate-left me-2"></i>CHANGE HISTORY</div>
+      <ul class="list-group list-group-flush">
+        {% for h in history %}
+        <li class="list-group-item">
+          <div><strong>{{ h['username'] or 'system' }}</strong> &rarr; {{ h['field_changed'] }}</div>
+          <div style="font-size:0.75rem;color:var(--cyber-muted)">
+            <span style="color:var(--cyber-red)">{{ h['old_value'] }}</span>
+            &rarr; <span style="color:var(--cyber-green)">{{ h['new_value'] }}</span>
+          </div>
+          <div style="font-size:0.7rem;color:var(--cyber-muted)">{{ h['changed_at'] }}</div>
+        </li>
+        {% else %}
+        <li class="list-group-item" style="color:var(--cyber-muted);font-size:0.8rem;text-align:center;padding:1.5rem">
+          <i class="fa-solid fa-circle-info me-1"></i>No changes recorded yet.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}ADMIN PANEL — VulnPortal{% endblock %}
+{% block content %}
+<h5 class="term-prompt mb-4">ADMIN // USER_MANAGEMENT</h5>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><i class="fa-solid fa-user-plus me-2"></i>CREATE USER</div>
+      <div class="card-body p-4">
+        <form method="post" action="{{ url_for('auth.add_user') }}">
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-user me-1"></i>Username</label>
+            <input type="text" id="admin-username" name="username" class="form-control" placeholder="enter_username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-envelope me-1"></i>Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="user@example.com" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-phone me-1"></i>Phone + Country Code</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+91 9876543210"
+                   pattern="^\+[1-9]\d{0,3}[\s-]?\d{6,12}$" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label"><i class="fa-solid fa-key me-1"></i>Password</label>
+            <input type="password" id="admin-password" name="password" class="form-control" placeholder="••••••••••••" required>
+            <div class="progress mt-2" style="height:4px;">
+              <div id="strength-bar" class="progress-bar" style="width:0%;transition:width .3s"></div>
+            </div>
+            <small id="strength-text" style="color:var(--cyber-muted)">Enter a password</small>
+          </div>
+          <div class="mb-4">
+            <label class="form-label"><i class="fa-solid fa-shield-halved me-1"></i>Role</label>
+            <select name="role" class="form-select">
+              <option value="viewer">Viewer — Read only</option>
+              <option value="analyst">Analyst — Add/Edit findings</option>
+            </select>
+          </div>
+          <button class="btn btn-primary w-100"><i class="fa-solid fa-terminal me-2"></i>CREATE USER</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-circle-info me-2"></i>ROLE MATRIX</div>
+      <div class="card-body p-3" style="font-size:0.75rem;">
+        <table class="table table-sm mb-0" style="font-size:0.73rem;">
+          <thead><tr><th>Permission</th><th>Admin</th><th>Analyst</th><th>Viewer</th></tr></thead>
+          <tbody>
+            <tr><td>View findings</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td></tr>
+            <tr><td>Add findings</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-red)">✗</td></tr>
+            <tr><td>Update status</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-red)">✗</td></tr>
+            <tr><td>Delete findings</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-red)">✗</td><td style="color:var(--cyber-red)">✗</td></tr>
+            <tr><td>Manage users</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-red)">✗</td><td style="color:var(--cyber-red)">✗</td></tr>
+            <tr><td>Export reports</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td><td style="color:var(--cyber-green)">✓</td></tr>
+          </tbody>
+        </table>
+        <div class="mt-2" style="color:var(--cyber-muted);font-size:0.7rem;">
+          <i class="fa-solid fa-lock me-1"></i>Admin is a seeded-only account. Cannot be created here.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-users me-2"></i>USER REGISTRY</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr><th>Username</th><th>Email</th><th>Phone</th><th>Role</th><th>Created</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>
+                <strong style="color:{% if u['role']=='admin' %}var(--cyber-critical){% elif u['role']=='analyst' %}var(--cyber-blue){% else %}var(--cyber-text){% endif %}">
+                  {{ u['username'] }}
+                </strong>
+                {% if u['id'] == g.user['id'] %}<span class="badge bg-info ms-1">you</span>{% endif %}
+              </td>
+              <td style="color:var(--cyber-muted);font-size:0.78rem">{{ u['email'] or '—' }}</td>
+              <td style="color:var(--cyber-muted);font-size:0.78rem">{{ u['phone'] or '—' }}</td>
+              <td><span class="badge bg-{{ 'dark' if u['role']=='admin' else ('primary' if u['role']=='analyst' else 'secondary') }}">{{ u['role'] }}</span></td>
+              <td style="color:var(--cyber-muted);font-size:0.72rem">{{ u['created_at']|fmtdate }}</td>
+              <td>
+                {% if u['role'] == 'admin' %}
+                <span style="color:var(--cyber-muted);font-size:0.72rem"><i class="fa-solid fa-lock me-1"></i>LOCKED</span>
+                {% else %}
+                <div class="d-flex gap-2 flex-wrap">
+                  <a href="{{ url_for('auth.edit_user', user_id=u['id']) }}" class="btn btn-sm btn-outline-primary" title="Edit profile">
+                    <i class="fa-solid fa-user-pen"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('auth.change_role', user_id=u['id']) }}" class="d-flex gap-1">
+                    <select name="role" class="form-select form-select-sm" style="min-width:100px">
+                      <option value="viewer" {% if u['role']=='viewer' %}selected{% endif %}>Viewer</option>
+                      <option value="analyst" {% if u['role']=='analyst' %}selected{% endif %}>Analyst</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-secondary" title="Change role"><i class="fa-solid fa-rotate"></i></button>
+                  </form>
+                  <form method="post" action="{{ url_for('auth.delete_user', user_id=u['id']) }}"
+                        onsubmit="return confirm('Delete {{ u['username'] }}? This cannot be undone.');">
+                    <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                  </form>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+<script>
+  const pw = document.getElementById('admin-password');
+  const un = document.getElementById('admin-username');
+  const bar = document.getElementById('strength-bar');
+  const txt = document.getElementById('strength-text');
+  const colors = ['var(--cyber-red)','var(--cyber-red)','var(--cyber-yellow)','var(--cyber-blue)','var(--cyber-green)'];
+  const labels = ['Very Weak','Weak','Fair','Good','Strong'];
+  pw.addEventListener('input', () => {
+    if (!pw.value) { bar.style.width='0%'; txt.textContent='Enter a password'; return; }
+    const r = zxcvbn(pw.value, [un.value]);
+    bar.style.width = ((r.score+1)/5*100)+'%';
+    bar.style.background = colors[r.score];
+    txt.textContent = labels[r.score] + (r.feedback.warning ? ' — '+r.feedback.warning : '');
+    txt.style.color = colors[r.score];
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}REPORTS — VulnPortal{% endblock %}
+{% block content %}
+<h5 class="term-prompt mb-4">REPORT_GENERATOR</h5>
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-file-csv me-2"></i>CSV EXPORT</div>
+      <div class="card-body p-4 text-center">
+        <div style="font-size:3rem;color:var(--cyber-green);text-shadow:0 0 20px rgba(0,255,136,0.4);margin-bottom:1rem;">
+          <i class="fa-solid fa-file-csv"></i>
+        </div>
+        <p style="color:var(--cyber-muted);font-size:0.82rem;">All findings with CVSS v3.1 and OWASP risk data. Machine-readable format for external tools.</p>
+        <a href="{{ url_for('reports.export_csv') }}" class="btn btn-primary w-100">
+          <i class="fa-solid fa-download me-2"></i>DOWNLOAD CSV
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-file-pdf me-2"></i>PDF REPORT</div>
+      <div class="card-body p-4 text-center">
+        <div style="font-size:3rem;color:var(--cyber-red);text-shadow:0 0 20px rgba(255,51,102,0.4);margin-bottom:1rem;">
+          <i class="fa-solid fa-file-pdf"></i>
+        </div>
+        <p style="color:var(--cyber-muted);font-size:0.82rem;">Formatted executive summary with findings table. Ready for stakeholder and management review.</p>
+        <a href="{{ url_for('reports.export_pdf') }}" class="btn btn-danger w-100">
+          <i class="fa-solid fa-download me-2"></i>DOWNLOAD PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

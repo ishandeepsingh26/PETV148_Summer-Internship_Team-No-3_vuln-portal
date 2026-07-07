@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{% if is_self %}MY PROFILE{% else %}EDIT {{ target['username']|upper }}{% endif %} — VulnPortal{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-user-pen me-2"></i>
+        {% if is_self %}MY PROFILE{% else %}EDIT PROFILE — {{ target['username']|upper }}
+          <span class="badge ms-2 bg-{{ 'dark' if target['role']=='admin' else ('primary' if target['role']=='analyst' else 'secondary') }}">{{ target['role'] }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-4">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-user me-1"></i>Username</label>
+            <input type="text" id="profile-username" name="username" class="form-control" value="{{ target['username'] }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-envelope me-1"></i>Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ target['email'] or '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-phone me-1"></i>Phone + Country Code </label>
+            <input type="tel" name="phone" class="form-control" value="{{ target['phone'] or '' }}"
+                   pattern="^\+[1-9]\d{0,3}[\s-]?\d{6,12}$" required>
+          </div>
+
+          <div style="border-top:1px solid var(--cyber-border);margin:1.5rem 0;"></div>
+          <div style="font-size:0.72rem;color:var(--cyber-muted);margin-bottom:1rem;letter-spacing:1px;">
+            <i class="fa-solid fa-key me-1" style="color:var(--cyber-green)"></i>
+            PASSWORD CHANGE — LEAVE BLANK TO KEEP CURRENT
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">New Password</label>
+            <input type="password" id="profile-password" name="new_password" class="form-control" placeholder="••••••••••••">
+            <div class="progress mt-2" style="height:4px;">
+              <div id="strength-bar" class="progress-bar" style="width:0%;transition:width .3s"></div>
+            </div>
+            <small id="strength-text" style="color:var(--cyber-muted)">Leave blank to keep current password</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" name="confirm_password" class="form-control" placeholder="••••••••••••">
+          </div>
+
+          {% if is_self %}
+          <div style="border-top:1px solid var(--cyber-border);margin:1.5rem 0;"></div>
+          <div class="mb-3">
+            <label class="form-label"><i class="fa-solid fa-lock me-1" style="color:var(--cyber-red)"></i>Current Password <span style="color:var(--cyber-red);font-size:0.7rem">REQUIRED TO SAVE</span></label>
+            <input type="password" name="current_password" class="form-control" placeholder="••••••••••••" required>
+          </div>
+          {% endif %}
+
+          <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+            <i class="fa-solid fa-floppy-disk me-2"></i>SAVE CHANGES
+          </button>
+          {% if not is_self %}
+          <a href="{{ url_for('auth.manage_users') }}" class="btn btn-outline-secondary w-100 mt-2">Cancel</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+<script>
+  const pw = document.getElementById('profile-password');
+  const un = document.getElementById('profile-username');
+  const bar = document.getElementById('strength-bar');
+  const txt = document.getElementById('strength-text');
+  const colors = ['var(--cyber-red)','var(--cyber-red)','var(--cyber-yellow)','var(--cyber-blue)','var(--cyber-green)'];
+  const labels = ['Very Weak','Weak','Fair','Good','Strong'];
+  pw.addEventListener('input', () => {
+    if (!pw.value) { bar.style.width='0%'; txt.textContent='Leave blank to keep current password'; return; }
+    const r = zxcvbn(pw.value, [un.value]);
+    bar.style.width = ((r.score+1)/5*100)+'%';
+    bar.style.background = colors[r.score];
+    txt.textContent = labels[r.score] + (r.feedback.warning ? ' — '+r.feedback.warning : '');
+    txt.style.color = colors[r.score];
+  });
+</script>
+{% endblock %}

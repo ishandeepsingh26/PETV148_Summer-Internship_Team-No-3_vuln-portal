@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}REQUEST ACCESS — VulnPortal{% endblock %}
+{% block content %}
+<div class="auth-wrapper" style="padding: 2rem 0;">
+  <div class="auth-card" style="max-width:520px;">
+    <div class="auth-title"><i class="fa-solid fa-user-plus me-2"></i>REQUEST ACCESS</div>
+    <div class="auth-subtitle">// CREATE ANALYST / VIEWER ACCOUNT</div>
+
+    <form method="post">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-user me-1"></i>Username</label>
+          <input type="text" id="username" name="username" class="form-control" placeholder="enter_username" required autocomplete="off">
+        </div>
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-envelope me-1"></i>Email Address</label>
+          <input type="email" name="email" class="form-control" placeholder="user@example.com" required>
+        </div>
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-phone me-1"></i>Phone + Country Code</label>
+          <input type="tel" name="phone" class="form-control" placeholder="+91 9876543210"
+                 pattern="^\+[1-9]\d{0,3}[\s-]?\d{6,12}$" required>
+          <small>Include country code — e.g. +1, +44, +91. Include country code — e.g. +1, +44, +91.</small>
+        </div>
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-shield-halved me-1"></i>Role</label>
+          <select name="role" class="form-select">
+            <option value="analyst">Analyst</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <small>Admin is a pre-configured account — cannot be self-registered.</small>
+        </div>
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-key me-1"></i>Password</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="••••••••••••" required>
+          <div class="progress mt-2" style="height:4px;">
+            <div id="strength-bar" class="progress-bar" style="width:0%;transition:width .3s"></div>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <small id="strength-text">Enter a password</small>
+            <small id="strength-score" style="color:var(--cyber-muted)">score: 0/4</small>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label"><i class="fa-solid fa-key me-1"></i>Confirm Password</label>
+          <input type="password" name="confirm_password" class="form-control" placeholder="••••••••••••" required>
+        </div>
+        <div class="col-12 mt-2">
+          <button type="submit" class="btn btn-primary w-100 py-2">
+            <i class="fa-solid fa-terminal me-2"></i>CREATE ACCOUNT
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <p class="mt-3 text-center" style="font-size:0.75rem;">
+      <span class="text-muted">Already have access?</span>
+      <a href="{{ url_for('auth.login') }}" class="ms-1">Login</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+<script>
+  const pw = document.getElementById('password');
+  const un = document.getElementById('username');
+  const bar = document.getElementById('strength-bar');
+  const txt = document.getElementById('strength-text');
+  const scr = document.getElementById('strength-score');
+  const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+  const colors = ['var(--cyber-red)','var(--cyber-red)','var(--cyber-yellow)','var(--cyber-blue)','var(--cyber-green)'];
+
+  pw.addEventListener('input', () => {
+    if (!pw.value) { bar.style.width='0%'; txt.textContent='Enter a password'; scr.textContent='score: 0/4'; return; }
+    const r = zxcvbn(pw.value, [un.value]);
+    bar.style.width = ((r.score+1)/5*100) + '%';
+    bar.style.background = colors[r.score];
+    txt.textContent = labels[r.score] + (r.feedback.warning ? ' — ' + r.feedback.warning : '');
+    txt.style.color = colors[r.score];
+    scr.textContent = 'score: ' + r.score + '/4';
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}ACCESS TERMINAL — VulnPortal{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-title"><i class="fa-solid fa-shield-halved me-2"></i>VULNPORTAL</div>
+    <div class="auth-subtitle">// SECURE ACCESS TERMINAL</div>
+
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label"><i class="fa-solid fa-user me-1"></i>Username</label>
+        <input type="text" name="username" class="form-control" placeholder="enter_username" required autofocus autocomplete="off">
+      </div>
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-key me-1"></i>Password</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 py-2">
+        <i class="fa-solid fa-terminal me-2"></i>AUTHENTICATE
+      </button>
+    </form>
+
+    <p class="mt-4 mb-0 text-center" style="font-size:0.75rem;">
+      <span class="text-muted">No account?</span>
+      <a href="{{ url_for('auth.register') }}" class="ms-1">Request Access</a>
+    </p>
+
+    <div class="mt-4 pt-3" style="border-top: 1px solid var(--cyber-border); font-size:0.7rem; color:var(--cyber-muted);">
+      <div><i class="fa-solid fa-lock me-1" style="color:var(--cyber-green)"></i>bcrypt · zxcvbn password strength</div>
+      <div><i class="fa-solid fa-shield me-1" style="color:var(--cyber-blue)"></i>CVSS v3.1 · OWASP Risk Rating</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

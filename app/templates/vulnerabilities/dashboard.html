@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — VulnPortal{% endblock %}
+{% block content %}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-blue)">
+      <div class="stat-value" data-target="{{ stats.total }}">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-critical)">
+      <div class="stat-value" data-target="{{ stats.critical }}">0</div>
+      <div class="stat-label">Critical</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-red)">
+      <div class="stat-value" data-target="{{ stats.high }}">0</div>
+      <div class="stat-label">High</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-yellow)">
+      <div class="stat-value" data-target="{{ stats.medium }}">0</div>
+      <div class="stat-label">Medium</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-green)">
+      <div class="stat-value" data-target="{{ stats.low }}">0</div>
+      <div class="stat-label">Low</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="--card-accent:var(--cyber-orange)">
+      <div class="stat-value" data-target="{{ stats.open }}">0</div>
+      <div class="stat-label">Open</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h5 class="term-prompt mb-0" style="font-size:0.85rem;">VULNERABILITY_INDEX</h5>
+  <div class="btn-group btn-group-sm">
+    <a href="{{ url_for('vulnerabilities.dashboard') }}"
+       class="btn btn-outline-secondary {% if not status_filter and not severity_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('vulnerabilities.dashboard', status='open') }}"
+       class="btn btn-outline-secondary {% if status_filter=='open' %}active{% endif %}">Open</a>
+    <a href="{{ url_for('vulnerabilities.dashboard', status='in_progress') }}"
+       class="btn btn-outline-secondary {% if status_filter=='in_progress' %}active{% endif %}">In Progress</a>
+    <a href="{{ url_for('vulnerabilities.dashboard', severity='Critical') }}"
+       class="btn btn-outline-secondary {% if severity_filter=='Critical' %}active{% endif %}">Critical</a>
+    <a href="{{ url_for('vulnerabilities.dashboard', severity='High') }}"
+       class="btn btn-outline-secondary {% if severity_filter=='High' %}active{% endif %}">High</a>
+  </div>
+</div>
+
+<!-- Vuln Table -->
+<div class="table-responsive">
+  <table class="table table-hover align-middle mb-0">
+    <thead>
+      <tr>
+        <th>#</th><th>Title</th><th>Asset</th>
+        <th>CVSS</th><th>Severity</th><th>OWASP Risk</th>
+        <th>Status</th><th>Assignee</th><th>Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vulns %}
+      <tr onclick="window.location='{{ url_for('vulnerabilities.view', vuln_id=v['id']) }}'">
+        <td style="color:var(--cyber-muted);font-size:0.75rem">{{ v['id'] }}</td>
+        <td><strong style="color:#fff">{{ v['title'] }}</strong></td>
+        <td style="color:var(--cyber-muted)">{{ v['asset_name'] or '—' }}</td>
+        <td>
+          <span style="font-family:var(--font-title);color:var(--cyber-blue)">
+            {{ '%.1f'|format(v['cvss_score']) if v['cvss_score'] is not none else '—' }}
+          </span>
+        </td>
+        <td><span class="badge bg-{{ severity_color(v['cvss_severity']) }}">{{ v['cvss_severity'] or 'None' }}</span></td>
+        <td><span class="badge bg-secondary">{{ v['owasp_risk_level'] or '—' }}</span></td>
+        <td>
+          <span class="badge" style="
+            {% if v['status']=='open' %}background:rgba(255,107,53,0.15);color:var(--cyber-orange);border:1px solid var(--cyber-orange)
+            {% elif v['status']=='in_progress' %}background:rgba(0,212,255,0.1);color:var(--cyber-blue);border:1px solid var(--cyber-blue)
+            {% elif v['status']=='remediated' %}background:rgba(0,255,136,0.1);color:var(--cyber-green);border:1px solid var(--cyber-green)
+            {% else %}background:rgba(74,96,128,0.2);color:var(--cyber-muted);border:1px solid var(--cyber-muted){% endif %}">
+            {{ v['status'].replace('_',' ').upper() }}
+          </span>
+        </td>
+        <td style="color:var(--cyber-muted)">{{ v['assignee'] or '—' }}</td>
+        <td style="color:var(--cyber-muted);font-size:0.78rem">{{ v['due_date'] or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" class="text-center py-5">
+          <div style="color:var(--cyber-muted)"><i class="fa-solid fa-database me-2"></i>NO RECORDS FOUND</div>
+          {% if g.user['role'] in ('admin','analyst') %}
+          <a href="{{ url_for('vulnerabilities.create') }}" class="btn btn-primary btn-sm mt-3">
+            <i class="fa-solid fa-circle-plus me-1"></i>Add First Finding
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Animated stat counters
+  document.querySelectorAll('.stat-value[data-target]').forEach(el => {
+    const target = +el.dataset.target;
+    if (target === 0) { el.textContent = '0'; return; }
+    let current = 0;
+    const step = Math.ceil(target / 30);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 40);
+  });
+</script>
+{% endblock %}
